@@ -1,0 +1,423 @@
+/* 极简任务清单 - 专注与心理舒适设计 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* 全局圆角遮罩 - 创建视觉圆角窗口效果 */
+html, body {
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.5;
+  color: #2d3748;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  min-height: 100vh;
+  font-weight: 400;
+  /* 添加内边距避免内容贴边 */
+  padding: 2px;
+}
+
+/* 主容器 - 悬浮卡片设计 */
+.app {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 20px 20px;
+  gap: 20px;
+  max-width: 420px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+/* 输入框样式 - 柔和圆角与阴影 */
+.input-container {
+  position: relative;
+  width: 100%;
+}
+
+.task-input {
+  width: 100%;
+  height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 400;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.95);
+  color: #2d3748;
+  box-shadow: 
+    0 6px 24px rgba(0, 0, 0, 0.06),
+    0 3px 12px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+.task-input:focus {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 10px 32px rgba(72, 187, 120, 0.12),
+    0 5px 16px rgba(72, 187, 120, 0.08),
+    0 0 0 2px rgba(72, 187, 120, 0.2);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.task-input::placeholder {
+  color: #a0aec0;
+  font-weight: 400;
+}
+
+/* 任务列表容器 - 充足留白 */
+.task-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+  min-height: 0;
+  width: 100%;
+  max-height: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 任务项样式 - 柔和卡片设计 */
+.task-item {
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  outline: none;
+  position: relative;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.02),
+    0 0 0 1px rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.task-item:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.task-item:hover .task-text {
+  color: #1a202c;
+}
+
+.task-item:hover .task-checkbox {
+  border-color: #68d391;
+  background: rgba(104, 211, 145, 0.1);
+  transform: scale(1.05);
+}
+
+.task-item.completed:hover .task-checkbox {
+  border-color: #68d391;
+  background: #68d391;
+  box-shadow: 0 3px 10px rgba(104, 211, 145, 0.3);
+}
+
+.task-item.focused {
+  box-shadow: 
+    0 6px 20px rgba(72, 187, 120, 0.15),
+    0 3px 10px rgba(72, 187, 120, 0.1),
+    0 0 0 2px rgba(72, 187, 120, 0.2);
+  transform: translateY(-1px);
+}
+
+.task-item.completed {
+  background: rgba(240, 253, 244, 0.8);
+  box-shadow: 
+    0 3px 12px rgba(104, 211, 145, 0.08),
+    0 1px 4px rgba(104, 211, 145, 0.04),
+    0 0 0 1px rgba(104, 211, 145, 0.1);
+  opacity: 0.9;
+}
+
+.task-item.completed .task-text {
+  text-decoration: line-through;
+  color: #68d391;
+  opacity: 0.8;
+}
+
+.task-item.completed:hover {
+  background: rgba(240, 253, 244, 0.95);
+  transform: translateY(-1px);
+  box-shadow: 
+    0 6px 18px rgba(104, 211, 145, 0.12),
+    0 3px 8px rgba(104, 211, 145, 0.06),
+    0 0 0 1px rgba(104, 211, 145, 0.15);
+}
+
+.task-item.completed:hover .task-text {
+  color: #48bb78;
+}
+
+/* 复选框样式 - 柔和绿色主题 */
+.task-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  margin-right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.task-checkbox:hover {
+  border-color: #68d391;
+  background: rgba(104, 211, 145, 0.1);
+  transform: scale(1.08);
+}
+
+.task-checkbox.checked {
+  background: #68d391;
+  border-color: #68d391;
+  color: #ffffff;
+  transform: scale(1.02);
+  box-shadow: 
+    0 3px 10px rgba(104, 211, 145, 0.3),
+    0 1px 4px rgba(104, 211, 145, 0.2);
+}
+
+.task-checkbox.checked::after {
+  content: "✓";
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  animation: checkmark 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes checkmark {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-45deg);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.2) rotate(0deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* 任务文本 - 清晰易读 */
+.task-text {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 400;
+  color: #2d3748;
+  word-break: break-word;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  transition: color 0.3s ease-out;
+}
+
+/* 状态栏 - 流畅进度反馈 */
+.status-bar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 16px;
+  margin-top: 4px;
+  box-shadow: 
+    0 6px 24px rgba(0, 0, 0, 0.06),
+    0 3px 12px rgba(0, 0, 0, 0.03),
+    0 0 0 1px rgba(255, 255, 255, 0.7);
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.progress-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #2d3748;
+  margin-bottom: 14px;
+  text-align: center;
+  letter-spacing: -0.01em;
+  opacity: 0.9;
+}
+
+.progress-container {
+  width: 100%;
+  height: 6px;
+  background: rgba(226, 232, 240, 0.6);
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #68d391, #48bb78, #38a169);
+  border-radius: 10px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 
+    0 1px 6px rgba(104, 211, 145, 0.3),
+    0 0 12px rgba(104, 211, 145, 0.2);
+}
+
+.progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  border-radius: 10px;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* 动画效果 - 自然流畅 */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes slideOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+
+.task-item {
+  animation: slideInUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-item.removing {
+  animation: slideOutDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-item.just-added {
+  animation: slideInUp 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.task-item.just-completed {
+  animation: completeTask 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes completeTask {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); background: rgba(240, 253, 244, 0.9); }
+  100% { transform: scale(1); }
+}
+
+/* 滚动条样式 - 极简设计 */
+.task-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.task-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.task-list::-webkit-scrollbar-thumb {
+  background: rgba(160, 174, 192, 0.4);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.task-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(160, 174, 192, 0.6);
+}
+
+/* 空状态提示 - 心理安全感 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: #a0aec0;
+  font-size: 13px;
+  font-weight: 300;
+  text-align: center;
+  padding: 32px;
+  opacity: 0.7;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+  border: 1px dashed rgba(160, 174, 192, 0.3);
+}
+
+.empty-state-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* 响应式调整 */
+@media (max-height: 400px) {
+  .app {
+    padding: 16px 18px;
+    gap: 14px;
+  }
+  
+  .task-input {
+    height: 42px;
+    font-size: 13px;
+  }
+  
+  .task-item {
+    padding: 12px 16px;
+  }
+  
+  .status-bar {
+    padding: 16px 20px;
+  }
+  
+  .progress-text {
+    font-size: 12px;
+  }
+}
+
+/* 键盘导航提示 */
+.keyboard-hint {
+  font-size: 10px;
+  color: #a0aec0;
+  opacity: 0.8;
+  white-space: nowrap;
+}
