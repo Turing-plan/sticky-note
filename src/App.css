@@ -7,7 +7,6 @@
 
 /* 全局圆角遮罩 - 创建视觉圆角窗口效果 */
 html, body {
-  border-radius: 18px;
   overflow: hidden;
 }
 
@@ -15,24 +14,24 @@ body {
   font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.5;
   color: #2d3748;
-  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  background: transparent;
   min-height: 100vh;
   font-weight: 400;
-  /* 添加内边距避免内容贴边 */
-  padding: 2px;
 }
 
 /* 主容器 - 悬浮卡片设计 */
 .app {
-  width: 100vw;
-  height: 100vh;
+  width: calc(100vw - 4px);
+  height: calc(100vh - 4px);
   display: flex;
   flex-direction: column;
   padding: 24px 20px 20px;
   gap: 20px;
   max-width: 420px;
-  margin: 0 auto;
-  background: transparent;
+  margin: 2px auto;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  border-radius: 24px;
+  overflow: hidden;
 }
 
 /* 输入框样式 - 柔和圆角与阴影 */
@@ -46,7 +45,7 @@ body {
   height: 48px;
   padding: 0 20px;
   border: none;
-  border-radius: 16px;
+  border-radius: 20px; /* 增加输入框圆角 */
   font-size: 14px;
   font-weight: 400;
   font-family: inherit;
@@ -93,7 +92,7 @@ body {
   display: flex;
   align-items: center;
   padding: 16px 20px;
-  border-radius: 14px;
+  border-radius: 18px; /* 增加任务项圆角 */
   background: rgba(255, 255, 255, 0.9);
   border: none;
   cursor: pointer;
@@ -243,7 +242,7 @@ body {
   padding: 20px 24px;
   background: rgba(255, 255, 255, 0.9);
   border: none;
-  border-radius: 16px;
+  border-radius: 20px; /* 增加状态栏圆角 */
   margin-top: 4px;
   box-shadow: 
     0 6px 24px rgba(0, 0, 0, 0.06),
@@ -267,7 +266,7 @@ body {
   width: 100%;
   height: 6px;
   background: rgba(226, 232, 240, 0.6);
-  border-radius: 10px;
+  border-radius: 12px; /* 增加进度条容器圆角 */
   overflow: hidden;
   position: relative;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
@@ -276,7 +275,7 @@ body {
 .progress-bar {
   height: 100%;
   background: linear-gradient(90deg, #68d391, #48bb78, #38a169);
-  border-radius: 10px;
+  border-radius: 12px; /* 增加进度条圆角 */
   transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   box-shadow: 
@@ -292,7 +291,7 @@ body {
   right: 0;
   bottom: 0;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  border-radius: 10px;
+  border-radius: 12px; /* 增加进度条光效圆角 */
   animation: shimmer 2s infinite;
 }
 
@@ -379,7 +378,7 @@ body {
   padding: 32px;
   opacity: 0.7;
   background: rgba(255, 255, 255, 0.5);
-  border-radius: 12px;
+  border-radius: 16px; /* 增加空状态提示圆角 */
   border: 1px dashed rgba(160, 174, 192, 0.3);
 }
 
