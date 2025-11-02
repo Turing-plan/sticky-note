@@ -1,5 +1,11 @@
 use std::fs;
 use tauri::Manager;
+use serde::{Deserialize, Serialize};
+
+#[derive(Serialize, Deserialize)]
+struct TasksPayload {
+    tasks: serde_json::Value,
+}
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -40,7 +46,7 @@ fn load_notes(app_handle: tauri::AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn save_tasks(app_handle: tauri::AppHandle, tasks: String) -> Result<(), String> {
+fn save_tasks(app_handle: tauri::AppHandle, payload: TasksPayload) -> Result<(), String> {
     let app_dir = app_handle
         .path()
         .app_data_dir()
@@ -50,7 +56,9 @@ fn save_tasks(app_handle: tauri::AppHandle, tasks: String) -> Result<(), String>
     fs::create_dir_all(&app_dir).map_err(|e| format!("Failed to create app directory: {}", e))?;
     
     let tasks_file = app_dir.join("tasks.json");
-    fs::write(tasks_file, tasks).map_err(|e| format!("Failed to save tasks: {}", e))?;
+    let tasks_json = serde_json::to_string(&payload.tasks)
+        .map_err(|e| format!("Failed to serialize tasks: {}", e))?;
+    fs::write(tasks_file, tasks_json).map_err(|e| format!("Failed to save tasks: {}", e))?;
     
     Ok(())
 }
@@ -83,8 +91,8 @@ pub fn run() {
                 
                 app.handle().plugin(
                     tauri_plugin_global_shortcut::Builder::new()
-                        .with_shortcuts(["CmdOrCtrl+M"])?
-                        .with_handler(move |_app, shortcut, event| {
+                        .with_shortcuts(["CmdOrCtrl+M", "CmdOrCtrl+Q"])?
+                        .with_handler(move |app, shortcut, event| {
                             if event.state == ShortcutState::Pressed {
                                 if shortcut.matches(Modifiers::CONTROL, Code::KeyM) || 
                                    shortcut.matches(Modifiers::META, Code::KeyM) {
@@ -103,6 +111,10 @@ pub fn run() {
                                             }
                                         }
                                     }
+                                } else if shortcut.matches(Modifiers::CONTROL, Code::KeyQ) || 
+                                          shortcut.matches(Modifiers::META, Code::KeyQ) {
+                                    // Ctrl+Q 关闭应用
+                                    app.exit(0);
                                 }
                             }
                         })

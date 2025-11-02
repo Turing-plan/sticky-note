@@ -8,14 +8,6 @@ declare global {
       core: {
         invoke: (cmd: string, args?: any) => Promise<any>;
       };
-      window: {
-        getCurrentWindow: () => {
-          isVisible: () => Promise<boolean>;
-          hide: () => Promise<void>;
-          show: () => Promise<void>;
-          setFocus: () => Promise<void>;
-        };
-      };
     };
   }
 }
@@ -28,14 +20,10 @@ interface Task {
 }
 
 function App() {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: "1", text: "写完论文摘要", completed: false, createdAt: new Date().toISOString() },
-    { id: "2", text: "邮件回复导师", completed: false, createdAt: new Date().toISOString() },
-    { id: "3", text: "调参 UNet 模型", completed: false, createdAt: new Date().toISOString() },
-  ]);
-  const [inputValue, setInputValue] = useState("写完论文摘要");
-  const [completedCount, setCompletedCount] = useState(3);
-  const [totalCount, setTotalCount] = useState(5);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const [completedCount, setCompletedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -49,7 +37,7 @@ function App() {
     // 加载保存的任务
     loadTasks();
 
-    // 移除全局键盘事件监听，不再需要ESC隐藏功能
+
   }, []);
 
   useEffect(() => {
@@ -62,9 +50,12 @@ function App() {
   const loadTasks = async () => {
     try {
       if (window.__TAURI__?.core?.invoke) {
-        const savedTasks = await window.__TAURI__.core.invoke<Task[]>("load_tasks");
-        if (savedTasks && Array.isArray(savedTasks)) {
-          setTasks(savedTasks);
+        const savedTasksJson = await window.__TAURI__.core.invoke<string>("load_tasks");
+        if (savedTasksJson) {
+          const savedTasks = JSON.parse(savedTasksJson);
+          if (savedTasks && Array.isArray(savedTasks)) {
+            setTasks(savedTasks);
+          }
         }
       }
     } catch (error) {
@@ -81,6 +72,8 @@ function App() {
       console.error("Failed to save tasks:", error);
     }
   };
+
+
 
   const addTask = () => {
     if (inputValue.trim()) {
@@ -200,7 +193,7 @@ function App() {
           ref={inputRef}
           type="text"
           className="task-input"
-          placeholder=""
+          placeholder="添加新任务..."
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
