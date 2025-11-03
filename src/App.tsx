@@ -50,7 +50,7 @@ function App() {
   const loadTasks = async () => {
     try {
       if (window.__TAURI__?.core?.invoke) {
-        const savedTasksJson = await window.__TAURI__.core.invoke<string>("load_tasks");
+        const savedTasksJson = await window.__TAURI__.core.invoke("load_tasks");
         if (savedTasksJson) {
           const savedTasks = JSON.parse(savedTasksJson);
           if (savedTasks && Array.isArray(savedTasks)) {
@@ -210,7 +210,9 @@ function App() {
             <div
               key={task.id}
               data-task-id={task.id}
-              ref={(el) => (taskRefs.current[index] = el)}
+              ref={(el) => {
+                taskRefs.current[index] = el;
+              }}
               className={`task-item ${task.completed ? "completed" : ""} ${selectedTaskIndex === index ? "focused" : ""}`}
               tabIndex={0}
               onKeyDown={(e) => handleTaskKeyDown(e, task.id, index)}
