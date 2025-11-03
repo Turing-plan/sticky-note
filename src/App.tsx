@@ -63,10 +63,10 @@ function App() {
     }
   };
 
-  const saveTasks = async (tasksToSave: Task[]) => {
+  const saveTasks = async (tasksToSave: Task[]): Promise<void> => {
     try {
       if (window.__TAURI__?.core?.invoke) {
-        await window.__TAURI__.core.invoke("save_tasks", { tasks: tasksToSave });
+        await window.__TAURI__.core.invoke("save_tasks", { payload: { tasks: tasksToSave } });
       }
     } catch (error) {
       console.error("Failed to save tasks:", error);
@@ -75,7 +75,7 @@ function App() {
 
 
 
-  const addTask = () => {
+  const addTask = async () => {
     if (inputValue.trim()) {
       const newTask: Task = {
         id: Date.now().toString(),
@@ -87,7 +87,7 @@ function App() {
       const updatedTasks = [...tasks, newTask];
       setTasks(updatedTasks);
       setInputValue("");
-      saveTasks(updatedTasks);
+      await saveTasks(updatedTasks);
       
       // 保持输入框焦点
       if (inputRef.current) {
@@ -107,7 +107,7 @@ function App() {
     }
   };
 
-  const toggleTask = (taskId: string) => {
+  const toggleTask = async (taskId: string) => {
     const taskElement = document.querySelector(`[data-task-id="${taskId}"]`);
     const task = tasks.find(t => t.id === taskId);
     
@@ -122,13 +122,13 @@ function App() {
       task.id === taskId ? { ...task, completed: !task.completed } : task
     );
     setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    await saveTasks(updatedTasks);
   };
 
-  const deleteTask = (taskId: string) => {
+  const deleteTask = async (taskId: string) => {
     const updatedTasks = tasks.filter(task => task.id !== taskId);
     setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    await saveTasks(updatedTasks);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

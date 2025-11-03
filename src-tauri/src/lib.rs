@@ -113,8 +113,13 @@ pub fn run() {
                                     }
                                 } else if shortcut.matches(Modifiers::CONTROL, Code::KeyQ) || 
                                           shortcut.matches(Modifiers::META, Code::KeyQ) {
-                                    // Ctrl+Q 关闭应用
-                                    app.exit(0);
+                                    // Ctrl+Q 优雅关闭应用
+                                    let app_handle = app_handle.clone();
+                                    std::thread::spawn(move || {
+                                        // 给前端一点时间完成任何正在进行的保存操作
+                                        std::thread::sleep(std::time::Duration::from_millis(100));
+                                        app_handle.exit(0);
+                                    });
                                 }
                             }
                         })
