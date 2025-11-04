@@ -1,7 +1,18 @@
-# Tauri + React + Typescript
+# Sticky Notes — 极简任务清单
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+## 为什么开发这个
+- 快速、轻量地记录和勾选待办，不被复杂功能打断
+- 纯键盘驱动（输入、选择、完成、删除），减少操作摩擦，保持专注
+- 始终置顶、无边框透明的视觉，像贴在桌面的便签
+- 不依赖云账号，数据本地保存，隐私与可靠性更好
+- 足够简单：输入 → 完成/删除 → 进度反馈，形成闭环
 
-## Recommended IDE Setup
-
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## 软件的使用
+- 添加任务：在输入框中输入后按 `Enter`
+- 选择任务：使用 `↑/↓` 在任务间移动
+- 切换完成：选中任务后按 `Space` 或 `Enter`
+- 删除任务：选中任务后按 `Delete` 或 `Backspace`
+- 取消选择并回到输入框：按 `Esc`
+- 全局快捷键：`Ctrl+M` 呼出/隐藏窗口，`Ctrl+Q` 退出应用（macOS 支持 `Cmd+M/Cmd+Q`）
+- 进度反馈：底部进度条实时显示已完成比例
+- 自动保存：任务会自动保存为本地 JSON，下次打开自动恢复
