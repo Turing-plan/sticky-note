@@ -28,6 +28,13 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
 
+  // 保持已完成任务在列表底部的排序
+  const orderTasks = (list: Task[]): Task[] => {
+    const incomplete = list.filter(t => !t.completed);
+    const complete = list.filter(t => t.completed);
+    return [...incomplete, ...complete];
+  };
+
   useEffect(() => {
     // 自动聚焦输入框
     if (inputRef.current) {
@@ -54,7 +61,7 @@ function App() {
         if (savedTasksJson) {
           const savedTasks = JSON.parse(savedTasksJson);
           if (savedTasks && Array.isArray(savedTasks)) {
-            setTasks(savedTasks);
+            setTasks(orderTasks(savedTasks));
           }
         }
       }
@@ -84,7 +91,7 @@ function App() {
         createdAt: new Date().toISOString(),
       };
       
-      const updatedTasks = [...tasks, newTask];
+      const updatedTasks = orderTasks([...tasks, newTask]);
       setTasks(updatedTasks);
       setInputValue("");
       await saveTasks(updatedTasks);
@@ -121,14 +128,16 @@ function App() {
     const updatedTasks = tasks.map(task =>
       task.id === taskId ? { ...task, completed: !task.completed } : task
     );
-    setTasks(updatedTasks);
-    await saveTasks(updatedTasks);
+    const reordered = orderTasks(updatedTasks);
+    setTasks(reordered);
+    await saveTasks(reordered);
   };
 
   const deleteTask = async (taskId: string) => {
     const updatedTasks = tasks.filter(task => task.id !== taskId);
-    setTasks(updatedTasks);
-    await saveTasks(updatedTasks);
+    const reordered = orderTasks(updatedTasks);
+    setTasks(reordered);
+    await saveTasks(reordered);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
