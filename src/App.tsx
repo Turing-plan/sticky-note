@@ -17,6 +17,10 @@ interface Task {
   text: string;
   completed: boolean;
   createdAt: string;
+  // 计时相关字段
+  inProgress?: boolean; // 进行中状态
+  elapsedMs?: number; // 累计耗时（毫秒）
+  lastStartAt?: number | null; // 最近一次开始时间戳（毫秒）
 }
 
 function App() {
@@ -27,6 +31,7 @@ function App() {
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [now, setNow] = useState<number>(Date.now());
 
   // 保持已完成任务在列表底部的排序
   const orderTasks = (list: Task[]): Task[] => {
@@ -54,6 +59,14 @@ function App() {
     setTotalCount(tasks.length);
   }, [tasks]);
 
+  // 进行中任务时钟：有进行中任务时每秒触发重渲染以更新耗时显示
+  useEffect(() => {
+    const hasRunning = tasks.some(t => t.inProgress);
+    if (!hasRunning) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [tasks]);
+
   const loadTasks = async () => {
     try {
       if (window.__TAURI__?.core?.invoke) {
@@ -61,7 +74,13 @@ function App() {
         if (savedTasksJson) {
           const savedTasks = JSON.parse(savedTasksJson);
           if (savedTasks && Array.isArray(savedTasks)) {
-            setTasks(orderTasks(savedTasks));
+            const normalized: Task[] = savedTasks.map((t: Task) => ({
+              ...t,
+              inProgress: t.inProgress ?? false,
+              elapsedMs: t.elapsedMs ?? 0,
+              lastStartAt: t.lastStartAt ?? null,
+            }));
+            setTasks(orderTasks(normalized));
           }
         }
       }
@@ -89,6 +108,9 @@ function App() {
         text: inputValue.trim(),
         completed: false,
         createdAt: new Date().toISOString(),
+        inProgress: false,
+        elapsedMs: 0,
+        lastStartAt: null,
       };
       
       const updatedTasks = orderTasks([...tasks, newTask]);
@@ -125,9 +147,20 @@ function App() {
       }, 600);
     }
     
-    const updatedTasks = tasks.map(task =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
-    );
+    const updatedTasks = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      const willComplete = !t.completed;
+      if (willComplete) {
+        let elapsed = t.elapsedMs ?? 0;
+        if (t.inProgress && t.lastStartAt) {
+          elapsed += Date.now() - t.lastStartAt;
+        }
+        return { ...t, completed: true, inProgress: false, lastStartAt: null, elapsedMs: elapsed };
+      } else {
+        // 取消完成状态，不自动重新计时，仅恢复未完成
+        return { ...t, completed: false };
+      }
+    });
     const reordered = orderTasks(updatedTasks);
     setTasks(reordered);
     await saveTasks(reordered);
@@ -140,7 +173,71 @@ function App() {
     await saveTasks(reordered);
   };
 
+  // Ctrl+Delete：清空所有任务
+  const clearAllTasks = async () => {
+    setTasks([]);
+    setSelectedTaskIndex(-1);
+    await saveTasks([]);
+    inputRef.current?.focus();
+  };
+
+  // Enter：开始/继续计时（仅未完成任务）
+  const startTask = async (taskId: string) => {
+    const updatedTasks = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      if (t.completed) return t; // 已完成不再计时
+      if (t.inProgress) return t; // 已在进行中无需重复处理
+      return {
+        ...t,
+        inProgress: true,
+        lastStartAt: Date.now(),
+      };
+    });
+    setTasks(updatedTasks);
+    await saveTasks(updatedTasks);
+  };
+
+  // Space：勾选完成并结算耗时
+  const completeTask = async (taskId: string) => {
+    const updatedTasks = tasks.map(t => {
+      if (t.id !== taskId) return t;
+      let elapsed = t.elapsedMs ?? 0;
+      if (t.inProgress && t.lastStartAt) {
+        elapsed += Date.now() - t.lastStartAt;
+      }
+      return { ...t, completed: true, inProgress: false, lastStartAt: null, elapsedMs: elapsed };
+    });
+    const reordered = orderTasks(updatedTasks);
+    setTasks(reordered);
+    await saveTasks(reordered);
+  };
+
+  const formatDuration = (ms: number): string => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
+    if (hours > 0) {
+      return `${hours}:${pad(minutes)}:${pad(seconds)}`;
+    }
+    return `${pad(minutes)}:${pad(seconds)}`;
+  };
+
+  const getElapsedMs = (task: Task): number => {
+    const base = task.elapsedMs ?? 0;
+    if (task.inProgress && task.lastStartAt) {
+      return base + (now - task.lastStartAt);
+    }
+    return base;
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.ctrlKey && e.key === "Delete") {
+      e.preventDefault();
+      clearAllTasks();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       addTask();
@@ -156,9 +253,17 @@ function App() {
   };
 
   const handleTaskKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, taskId: string, index: number) => {
-    if (e.key === "Enter" || e.key === " ") {
+    if (e.ctrlKey && e.key === "Delete") {
       e.preventDefault();
-      toggleTask(taskId);
+      clearAllTasks();
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      startTask(taskId);
+    } else if (e.key === " ") {
+      e.preventDefault();
+      completeTask(taskId);
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       deleteTask(taskId);
@@ -193,6 +298,18 @@ function App() {
       inputRef.current?.focus();
     }
   };
+
+  // 全局监听 Ctrl+Delete 清空（确保不论焦点在哪都生效）
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Delete') {
+        e.preventDefault();
+        clearAllTasks();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [tasks]);
 
   return (
     <div className="app">
@@ -229,10 +346,15 @@ function App() {
               onBlur={() => setSelectedTaskIndex(-1)}
             >
               <div
-                className={`task-checkbox ${task.completed ? "checked" : ""}`}
+                className={`task-checkbox ${task.completed ? "checked" : ""} ${task.inProgress && !task.completed ? "running" : ""}`}
                 onClick={() => toggleTask(task.id)}
               />
               <span className="task-text">{task.text}</span>
+              {(task.inProgress || (task.elapsedMs ?? 0) > 0 || task.completed) && (
+                <span className="task-time">
+                  {formatDuration(getElapsedMs(task))}
+                </span>
+              )}
             </div>
           ))
         )}
