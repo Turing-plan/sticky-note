@@ -25,13 +25,14 @@ interface Task {
 
 function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [inputValue, setInputValue] = useState("");
   const [completedCount, setCompletedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [selectedTaskIndex, setSelectedTaskIndex] = useState(-1);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const taskRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [now, setNow] = useState<number>(Date.now());
+  const [showNewTask, setShowNewTask] = useState(false);
+  const [newTaskText, setNewTaskText] = useState("");
+  const newTaskInputRef = useRef<HTMLInputElement>(null);
 
   // 保持已完成任务在列表底部的排序
   const orderTasks = (list: Task[]): Task[] => {
@@ -41,16 +42,18 @@ function App() {
   };
 
   useEffect(() => {
-    // 自动聚焦输入框
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-    
     // 加载保存的任务
     loadTasks();
-
-
   }, []);
+
+  // 新任务弹窗打开时自动聚焦输入
+  useEffect(() => {
+    if (showNewTask) {
+      setTimeout(() => {
+        newTaskInputRef.current?.focus();
+      }, 10);
+    }
+  }, [showNewTask]);
 
   useEffect(() => {
     // 更新完成状态统计
@@ -101,28 +104,22 @@ function App() {
 
 
 
-  const addTask = async () => {
-    if (inputValue.trim()) {
+  const addTaskFromText = async (text: string) => {
+    if (text.trim()) {
       const newTask: Task = {
         id: Date.now().toString(),
-        text: inputValue.trim(),
+        text: text.trim(),
         completed: false,
         createdAt: new Date().toISOString(),
         inProgress: false,
         elapsedMs: 0,
         lastStartAt: null,
       };
-      
+
       const updatedTasks = orderTasks([...tasks, newTask]);
       setTasks(updatedTasks);
-      setInputValue("");
       await saveTasks(updatedTasks);
-      
-      // 保持输入框焦点
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-      
+
       // 添加动画效果
       setTimeout(() => {
         const taskElement = document.querySelector(`[data-task-id="${newTask.id}"]`);
@@ -131,6 +128,15 @@ function App() {
           setTimeout(() => {
             taskElement.classList.remove('just-added');
           }, 500);
+        }
+      }, 10);
+
+      // 自动选中并聚焦新任务
+      setSelectedTaskId(newTask.id);
+      setTimeout(() => {
+        const idx = updatedTasks.findIndex(t => t.id === newTask.id);
+        if (idx >= 0) {
+          taskRefs.current[idx]?.focus();
         }
       }, 10);
     }
@@ -171,14 +177,26 @@ function App() {
     const reordered = orderTasks(updatedTasks);
     setTasks(reordered);
     await saveTasks(reordered);
+    // 删除后保持邻近项选中
+    setTimeout(() => {
+      // 原始索引
+      const originalIndex = tasks.findIndex(t => t.id === taskId);
+      const nextId = reordered[originalIndex]?.id ?? reordered[originalIndex - 1]?.id ?? null;
+      if (nextId) {
+        setSelectedTaskId(nextId);
+        const idx = reordered.findIndex(t => t.id === nextId);
+        if (idx >= 0) taskRefs.current[idx]?.focus();
+      } else {
+        setSelectedTaskId(null);
+      }
+    }, 10);
   };
 
   // Ctrl+Delete：清空所有任务
   const clearAllTasks = async () => {
     setTasks([]);
-    setSelectedTaskIndex(-1);
+    setSelectedTaskId(null);
     await saveTasks([]);
-    inputRef.current?.focus();
   };
 
   // Enter：开始/继续计时（仅未完成任务）
@@ -232,25 +250,7 @@ function App() {
     return base;
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.ctrlKey && e.key === "Delete") {
-      e.preventDefault();
-      clearAllTasks();
-      return;
-    }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      addTask();
-    } else if (e.key === "ArrowDown" && tasks.length > 0) {
-      e.preventDefault();
-      setSelectedTaskIndex(0);
-      taskRefs.current[0]?.focus();
-    } else if (e.key === "ArrowUp" && tasks.length > 0) {
-      e.preventDefault();
-      setSelectedTaskIndex(tasks.length - 1);
-      taskRefs.current[tasks.length - 1]?.focus();
-    }
-  };
+  // 已移除输入框，因此不再需要其键盘事件处理
 
   const handleTaskKeyDown = (e: React.KeyboardEvent<HTMLDivElement>, taskId: string, index: number) => {
     if (e.ctrlKey && e.key === "Delete") {
@@ -261,70 +261,141 @@ function App() {
     if (e.key === "Enter") {
       e.preventDefault();
       startTask(taskId);
-    } else if (e.key === " ") {
+    } else if (e.code === "Space" || e.key === " " || e.key === "Space" || (e as any).key === "Spacebar") {
       e.preventDefault();
       completeTask(taskId);
     } else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
       deleteTask(taskId);
-      // 删除后重新聚焦输入框
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-          setSelectedTaskIndex(-1);
-        }
-      }, 10);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      e.stopPropagation();
       if (index < tasks.length - 1) {
-        setSelectedTaskIndex(index + 1);
-        taskRefs.current[index + 1]?.focus();
-      } else {
-        setSelectedTaskIndex(-1);
-        inputRef.current?.focus();
+        const nextIdx = index + 1;
+        setSelectedTaskId(tasks[nextIdx].id);
+        taskRefs.current[nextIdx]?.focus();
       }
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      e.stopPropagation();
       if (index > 0) {
-        setSelectedTaskIndex(index - 1);
-        taskRefs.current[index - 1]?.focus();
-      } else {
-        setSelectedTaskIndex(-1);
-        inputRef.current?.focus();
+        const prevIdx = index - 1;
+        setSelectedTaskId(tasks[prevIdx].id);
+        taskRefs.current[prevIdx]?.focus();
       }
     } else if (e.key === "Escape") {
       e.preventDefault();
-      setSelectedTaskIndex(-1);
-      inputRef.current?.focus();
+      setSelectedTaskId(null);
     }
   };
 
-  // 全局监听 Ctrl+Delete 清空（确保不论焦点在哪都生效）
+  // 全局监听快捷键：Ctrl+Delete 清空、Ctrl+N 新任务、Esc 关闭新任务弹窗、ArrowUp/ArrowDown 列表导航
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      // 弹窗打开时仅处理 Esc，避免误触其它全局快捷键
+      if (showNewTask) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowNewTask(false);
+        }
+        return;
+      }
+
+      // 输入态不处理全局快捷键
+      const ae = document.activeElement as HTMLElement | null;
+      const typing = !!ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || (ae as any).isContentEditable);
+      if (typing) return;
+
       if ((e.ctrlKey || e.metaKey) && e.key === 'Delete') {
         e.preventDefault();
         clearAllTasks();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'n' || e.key === 'N')) {
+        e.preventDefault();
+        setShowNewTask(true);
+        return;
+      }
+
+      // 若当前已有任务项获得焦点，则交由任务项自身处理，避免双触发造成跳项
+      const isTaskFocused = !!ae && ae.classList.contains('task-item');
+      if (isTaskFocused) return;
+
+      if (e.key === 'ArrowDown' && tasks.length > 0) {
+        e.preventDefault();
+        const currentIndex = selectedTaskId ? tasks.findIndex(t => t.id === selectedTaskId) : -1;
+        const nextIndex = currentIndex < 0 ? 0 : Math.min(currentIndex + 1, tasks.length - 1);
+        setSelectedTaskId(tasks[nextIndex].id);
+        setTimeout(() => {
+          taskRefs.current[nextIndex]?.focus();
+        }, 0);
+        return;
+      }
+
+      if (e.key === 'ArrowUp' && tasks.length > 0) {
+        e.preventDefault();
+        const currentIndex = selectedTaskId ? tasks.findIndex(t => t.id === selectedTaskId) : tasks.length;
+        const nextIndex = currentIndex < 0 ? tasks.length - 1 : Math.max(currentIndex - 1, 0);
+        setSelectedTaskId(tasks[nextIndex].id);
+        setTimeout(() => {
+          taskRefs.current[nextIndex]?.focus();
+        }, 0);
+        return;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [tasks]);
+  }, [tasks, showNewTask, selectedTaskId]);
 
   return (
     <div className="app">
-      {/* 输入框区域 */}
-      <div className="input-container">
-        <input
-          ref={inputRef}
-          type="text"
-          className="task-input"
-          placeholder="添加新任务..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-      </div>
+      {/* 新任务弹窗：Ctrl+N 打开，Enter 添加，Esc 关闭 */}
+      {showNewTask && (
+        <div className="overlay" onClick={() => setShowNewTask(false)}>
+          <div className="overlay-card" onClick={(e) => e.stopPropagation()}>
+            <div className="overlay-header">
+              <div className="overlay-title">添加新任务</div>
+              <button className="overlay-close" onClick={() => setShowNewTask(false)}>×</button>
+            </div>
+            <input
+              ref={newTaskInputRef}
+              type="text"
+              className="overlay-input"
+              placeholder="输入任务名称..."
+              value={newTaskText}
+              onChange={(e) => setNewTaskText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (newTaskText.trim()) {
+                    addTaskFromText(newTaskText.trim());
+                    setNewTaskText("");
+                    setShowNewTask(false);
+                  }
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setShowNewTask(false);
+                }
+              }}
+            />
+            <div className="overlay-actions">
+              <button className="btn" onClick={() => setShowNewTask(false)}>取消</button>
+              <button
+                className="btn primary"
+                disabled={!newTaskText.trim()}
+                onClick={() => {
+                  if (newTaskText.trim()) {
+                    addTaskFromText(newTaskText.trim());
+                    setNewTaskText("");
+                    setShowNewTask(false);
+                  }
+                }}
+              >添加</button>
+            </div>
+            <div className="overlay-footer">快捷键：Ctrl+N 打开，Enter 添加，Esc 关闭</div>
+          </div>
+        </div>
+      )}
 
       {/* 任务列表区域 */}
       <div className="task-list">
@@ -339,11 +410,20 @@ function App() {
               ref={(el) => {
                 taskRefs.current[index] = el;
               }}
-              className={`task-item ${task.completed ? "completed" : ""} ${selectedTaskIndex === index ? "focused" : ""}`}
+              className={`task-item ${task.completed ? "completed" : ""} ${selectedTaskId === task.id ? "focused" : ""}`}
               tabIndex={0}
               onKeyDown={(e) => handleTaskKeyDown(e, task.id, index)}
-              onFocus={() => setSelectedTaskIndex(index)}
-              onBlur={() => setSelectedTaskIndex(-1)}
+              onFocus={() => setSelectedTaskId(task.id)}
+              onBlur={() => {
+                // 仅当焦点离开任务列表时才清除选中，避免在任务间跳转时被立即清空
+                setTimeout(() => {
+                  const el = document.activeElement as HTMLElement | null;
+                  const isTaskItem = !!el && el.classList.contains('task-item');
+                  if (!isTaskItem) {
+                    setSelectedTaskId(null);
+                  }
+                }, 0);
+              }}
             >
               <div
                 className={`task-checkbox ${task.completed ? "checked" : ""} ${task.inProgress && !task.completed ? "running" : ""}`}
